@@ -461,7 +461,7 @@ void ftm0_isr()
         if (CORE_PIN20_PINREG & CORE_PIN20_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[6] = FTM0_C5V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[6]), Teensy3Servo::unmatchedRiseCounts[6], FTM0_C3V);
+            fillInPulseWidth(&(Teensy3Servo::pulseWidth[6]), Teensy3Servo::unmatchedRiseCounts[6], FTM0_C5V);
         }
     }
     if (FTM0_C6SC & FTM_CnSC_CHF) { // Pin 21
@@ -469,7 +469,7 @@ void ftm0_isr()
         if (CORE_PIN21_PINREG & CORE_PIN21_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[7] = FTM0_C6V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[7]), Teensy3Servo::unmatchedRiseCounts[7], FTM0_C3V);
+            fillInPulseWidth(&(Teensy3Servo::pulseWidth[7]), Teensy3Servo::unmatchedRiseCounts[7], FTM0_C6V);
         }
     }
     if (FTM0_C0SC & FTM_CnSC_CHF) { // Pin 22
