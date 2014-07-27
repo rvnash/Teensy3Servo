@@ -85,8 +85,8 @@ public:
     static int16_t Get(int8_t teensyPin);
     
     // Counts public so that ISRs can get at them
-    static uint16_t aRiseCounts[12];
-    static uint16_t aFallCounts[12];
+    static uint16_t unmatchedRiseCounts[12];
+    static uint16_t pulseWidth[12];
 private:
     // Initialize output for FlexTimer0
     static void InitTimer(volatile uint32_t *FTMx_MODE,
