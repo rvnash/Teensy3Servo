@@ -82,11 +82,14 @@ public:
     // Some day I hope to extend this to read the pulse widths as an input
     // For now these two functions don't do anything.
     static bool InitIn(int8_t teensyPin);
+    static bool HasNew(int8_t teensyPin);
     static int16_t Get(int8_t teensyPin);
     
     // Counts public so that ISRs can get at them
     static uint16_t unmatchedRiseCounts[12];
     static uint16_t pulseWidth[12];
+    static bool newReading[12];
+    
 private:
     // Initialize output for FlexTimer0
     static void InitTimer(volatile uint32_t *FTMx_MODE,
