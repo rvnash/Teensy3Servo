@@ -78,9 +78,10 @@
 #define FTM_CnSC_MSB            (uint32_t)0x00000020
 #define FTM_CnSC_MSA            (uint32_t)0x00000010
 
-// Unfortunately, some static storage. 48 bytes
+// Unfortunately, some static storage. 60 bytes
 uint16_t Teensy3Servo::unmatchedRiseCounts[12];
 uint16_t Teensy3Servo::pulseWidth[12];
+bool Teensy3Servo::newReading[12];
 
 
 // Initialize the pin to be a Servo output pin
@@ -207,47 +208,59 @@ int16_t Teensy3Servo::Get(int8_t teensyPin)
 {
     uint16_t width;
     
-   switch (teensyPin) {
+    switch (teensyPin) {
         case 3:
             width = pulseWidth[0];
+            newReading[0] = false;
             break;
         case 4:
             width = pulseWidth[1];
+            newReading[1] = false;
             break;
         case 5:
             width = pulseWidth[2];
+            newReading[2] = false;
             break;
         case 6:
             width = pulseWidth[3];
-           break;
+            newReading[3] = false;
+            break;
         case 9:
             width = pulseWidth[4];
+            newReading[4] = false;
             break;
         case 10:
             width = pulseWidth[5];
+            newReading[5] = false;
             break;
         case 20:
             width = pulseWidth[6];
+            newReading[6] = false;
             break;
         case 21:
             width = pulseWidth[7];
+            newReading[7] = false;
             break;
         case 22:
             width = pulseWidth[8];
+            newReading[8] = false;
             break;
         case 23:
             width = pulseWidth[9];
+            newReading[9] = false;
             break;
         case 25:
             width = pulseWidth[10];
+            newReading[10] = false;
             break;
         case 32:
             width = pulseWidth[11];
+            newReading[11] = false;
             break;
         default:
             return 0;
     }
-   
+    
 #ifdef DEBUG
     Serial.printf("Rise in a row: %d\n\r", nRisesInARow);
     Serial.printf("Fall in a row: %d\n\r", nFallsInARow);
@@ -257,6 +270,52 @@ int16_t Teensy3Servo::Get(int8_t teensyPin)
 #endif
     
     return (int16_t)(countToDegrees(width)+0.5f);
+    
+}
+
+// Returns true if the servo has a new reading
+bool Teensy3Servo::HasNew(int8_t teensyPin)
+{
+    switch (teensyPin) {
+        case 3:
+            return newReading[0];
+            break;
+        case 4:
+            return newReading[1];
+            break;
+        case 5:
+            return newReading[2];
+            break;
+        case 6:
+            return newReading[3];
+            break;
+        case 9:
+            return newReading[4];
+            break;
+        case 10:
+            return newReading[5];
+            break;
+        case 20:
+            return newReading[6];
+            break;
+        case 21:
+            return newReading[7];
+            break;
+        case 22:
+            return newReading[8];
+            break;
+        case 23:
+            return newReading[9];
+            break;
+        case 25:
+            return newReading[10];
+            break;
+        case 32:
+            return newReading[11];
+            break;
+        default:
+            return false;
+    }
     
 }
 
@@ -394,13 +453,14 @@ bool Teensy3Servo::InitByPin(uint8_t teensyPin, volatile uint32_t **channelContr
 // Both rising and falling edges generate input. Go through the list of
 // channels to see which one(s) caused the interrupt, and capture the counts.
 // Fill in both rise/fall on fall
-void fillInPulseWidth(uint16_t *pulseWidth, uint16_t riseTime, uint16_t fallTime)
+void fillInPulseWidth(uint8_t index, uint16_t fallTime)
 {
-    if (fallTime > riseTime) {
-        *pulseWidth = fallTime-riseTime;
+    if (fallTime > Teensy3Servo::unmatchedRiseCounts[index]) {
+        Teensy3Servo::pulseWidth[index] = fallTime-Teensy3Servo::unmatchedRiseCounts[index];
     } else {
-        *pulseWidth = fallTime + (TIMER_COUNTS - riseTime);
+        Teensy3Servo::pulseWidth[index] = fallTime + (TIMER_COUNTS - Teensy3Servo::unmatchedRiseCounts[index]);
     }
+    Teensy3Servo::newReading[index] = true;
 }
 
 void ftm0_isr()
@@ -410,7 +470,7 @@ void ftm0_isr()
         if (CORE_PIN5_PINREG & CORE_PIN5_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[2] = FTM0_C7V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[2]), Teensy3Servo::unmatchedRiseCounts[2], FTM0_C7V);
+            fillInPulseWidth(2, FTM0_C7V);
         }
     }
     if (FTM0_C4SC & FTM_CnSC_CHF) { // Pin 6
@@ -418,7 +478,7 @@ void ftm0_isr()
         if (CORE_PIN6_PINREG & CORE_PIN6_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[3] = FTM0_C4V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[3]), Teensy3Servo::unmatchedRiseCounts[3], FTM0_C4V);
+            fillInPulseWidth(3, FTM0_C4V);
         }
 #ifdef DEBUG
         if (CORE_PIN6_PINREG & CORE_PIN6_BITMASK) {
@@ -445,7 +505,7 @@ void ftm0_isr()
         if (CORE_PIN9_PINREG & CORE_PIN9_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[4] = FTM0_C2V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[4]), Teensy3Servo::unmatchedRiseCounts[4], FTM0_C2V);
+            fillInPulseWidth(4, FTM0_C2V);
         }
     }
     if (FTM0_C3SC & FTM_CnSC_CHF) { // Pin 10
@@ -453,7 +513,7 @@ void ftm0_isr()
         if (CORE_PIN10_PINREG & CORE_PIN10_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[5] = FTM0_C3V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[5]), Teensy3Servo::unmatchedRiseCounts[5], FTM0_C3V);
+            fillInPulseWidth(5, FTM0_C3V);
         }
     }
     if (FTM0_C5SC & FTM_CnSC_CHF) { // Pin 20
@@ -461,7 +521,7 @@ void ftm0_isr()
         if (CORE_PIN20_PINREG & CORE_PIN20_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[6] = FTM0_C5V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[6]), Teensy3Servo::unmatchedRiseCounts[6], FTM0_C5V);
+            fillInPulseWidth(6, FTM0_C5V);
         }
     }
     if (FTM0_C6SC & FTM_CnSC_CHF) { // Pin 21
@@ -469,7 +529,7 @@ void ftm0_isr()
         if (CORE_PIN21_PINREG & CORE_PIN21_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[7] = FTM0_C6V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[7]), Teensy3Servo::unmatchedRiseCounts[7], FTM0_C6V);
+            fillInPulseWidth(7, FTM0_C6V);
         }
     }
     if (FTM0_C0SC & FTM_CnSC_CHF) { // Pin 22
@@ -477,7 +537,7 @@ void ftm0_isr()
         if (CORE_PIN22_PINREG & CORE_PIN22_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[8] = FTM0_C0V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[8]), Teensy3Servo::unmatchedRiseCounts[8], FTM0_C0V);
+            fillInPulseWidth(8, FTM0_C0V);
         }
     }
     if (FTM0_C1SC & FTM_CnSC_CHF) { // Pin 23
@@ -485,7 +545,7 @@ void ftm0_isr()
         if (CORE_PIN23_PINREG & CORE_PIN23_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[9] = FTM0_C1V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[9]), Teensy3Servo::unmatchedRiseCounts[9], FTM0_C1V);
+            fillInPulseWidth(9, FTM0_C1V);
         }
     }
 }
@@ -497,7 +557,7 @@ void ftm1_isr()
         if (CORE_PIN3_PINREG & CORE_PIN3_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[0] = FTM1_C0V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[0]), Teensy3Servo::unmatchedRiseCounts[0], FTM1_C0V);
+            fillInPulseWidth(0, FTM1_C0V);
         }
     }
     if (FTM1_C1SC & FTM_CnSC_CHF) { // Pin 4
@@ -505,7 +565,7 @@ void ftm1_isr()
         if (CORE_PIN4_PINREG & CORE_PIN4_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[1] = FTM1_C1V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[1]), Teensy3Servo::unmatchedRiseCounts[1], FTM1_C1V);
+            fillInPulseWidth(1, FTM1_C1V);
         }
     }
 }
@@ -517,7 +577,7 @@ void ftm2_isr()
         if (CORE_PIN32_PINREG & CORE_PIN32_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[11] = FTM2_C0V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[11]), Teensy3Servo::unmatchedRiseCounts[11], FTM2_C0V);
+            fillInPulseWidth(11, FTM2_C0V);
         }
     }
     if (FTM2_C1SC & FTM_CnSC_CHF) { // Pin 25
@@ -525,7 +585,7 @@ void ftm2_isr()
         if (CORE_PIN25_PINREG & CORE_PIN25_BITMASK) {
             Teensy3Servo::unmatchedRiseCounts[10] = FTM2_C1V;
         } else {
-            fillInPulseWidth(&(Teensy3Servo::pulseWidth[10]), Teensy3Servo::unmatchedRiseCounts[10], FTM2_C1V);
+            fillInPulseWidth(10, FTM2_C1V);
         }
     }
 }
